@@ -6,3 +6,5 @@ core: 8.x
 dependencies:
   - migrate
   - migrate_plus
+  - migrate_tools
+  - serialization
