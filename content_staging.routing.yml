@@ -1,0 +1,9 @@
+content_staging.settings:
+  path: '/admin/config/system/content-staging'
+  defaults:
+    _form: 'Drupal\content_staging\Form\ContentStagingForm'
+    _title: 'Content Staging'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer content staging'

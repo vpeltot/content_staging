@@ -1,0 +1,25 @@
+{
+  "name": "vpeltot/content_staging",
+  "description": "A drupal module to keep content during site install.",
+  "type": "drupal-module",
+  "homepage": "https://github.com/vpeltot/content_staging",
+  "authors": [
+    {
+      "name": "Vincent Peltot",
+      "homepage": "https://www.drupal.org/u/vpeltot"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/vpeltot/content_staging/issues"
+  },
+  "license": "GPL-2.0+",
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://packages.drupal.org/8"
+    }
+  ],
+  "require": {
+    "drupal/migrate_plus": "~3.0",
+  }
+}

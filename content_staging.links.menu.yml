@@ -1,0 +1,5 @@
+content_staging.settings:
+  title: 'Content staging settings'
+  description: 'Choose the staging destination and the entity types to export.'
+  route_name: content_staging.settings
+  parent: 'system.admin_config_development'

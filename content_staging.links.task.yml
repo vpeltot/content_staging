@@ -1,0 +1,5 @@
+content_staging.settings:
+  title: 'Settings'
+  route_name: content_staging.settings
+  base_route: content_staging.settings
+  weight: 0
