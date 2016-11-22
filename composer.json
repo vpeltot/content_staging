@@ -20,6 +20,6 @@
     }
   ],
   "require": {
-    "drupal/migrate_plus": "~3.0",
+    "drupal/migrate_plus": "~3.0"
   }
 }
