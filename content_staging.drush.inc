@@ -190,7 +190,7 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
     }
     elseif ($entity_type == 'menu_link_content' && $field_key == 'parent') {
       $config[$field_key] = [
-        'plugin' => 'menu_link_parent',
+        'plugin' => 'content_staging_menu_link_parent',
         'source' => [
           $field_key,
           '@menu_name',
