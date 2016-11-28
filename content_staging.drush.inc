@@ -154,10 +154,6 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
       elseif (!$entity_type_manager->getDefinition($bundle_field->getSettings()['target_type'])->get('bundle_entity_type')) {
         $migration = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $bundle_field->getSettings()['target_type'];
       }
-      // Special cas for 'poll', 'poll_choice' and 'holidays_inventory'
-      elseif (in_array($bundle_field->getSettings()['target_type'], ['poll', 'poll_choice', 'holidays_inventory'])) {
-        $migration = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $bundle_field->getSettings()['target_type'];
-      }
       // Spacial case for entity types with bundle but without bundles in field settings
       elseif (!isset($bundle_field->getSettings()['handler_settings']['target_bundles'])) {
         $content_staging_manager = \Drupal::service('content_staging.manager');
@@ -190,6 +186,15 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
         'plugin' => 'migration',
         'migration' => $migration,
         $source_key => $migration_source,
+      ];
+    }
+    elseif ($entity_type == 'menu_link_content' && $field_key == 'parent') {
+      $config[$field_key] = [
+        'plugin' => 'menu_link_parent',
+        'source' => [
+          $field_key,
+          '@menu_name',
+        ],
       ];
     }
     elseif ($bundle_field->getType() == 'image') {
