@@ -208,6 +208,9 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
       $config[$field_key] = $field_key;
     }
   }
+  if ($entity_type == 'entity_subqueue') {
+    $config['name'] = 'name';
+  }
   return $config;
 }
 

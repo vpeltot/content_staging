@@ -99,6 +99,7 @@ class ContentStagingJson extends SourcePluginBase {
           'shortcut_set',
           'vid',
           'bundle',
+          'queue',
         ]) && isset($item['target_id'])) {
         $value = $item['target_id'];
       }
