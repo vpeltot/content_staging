@@ -108,6 +108,7 @@ class ContentStagingJson extends SourcePluginBase {
       }
       elseif (is_scalar($item) || (count($item) != 1 && !isset($item['width']) && !isset($item['pid']))) {
         if (isset($item[0]) && isset($item[0]['target_uuid'])) {
+          $value = [];
           foreach ($item as $it) {
             $value[] = $it['target_uuid'];
           }
