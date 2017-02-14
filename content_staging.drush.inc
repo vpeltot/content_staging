@@ -311,6 +311,9 @@ function export_files($entities) {
     if (!file_exists($folder)) {
       mkdir($folder, 0777, TRUE);
     }
-    file_put_contents($folder . '/' . $file->getFilename(), file_get_contents($file->getFileUri()));
+
+    /** @var \Drupal\Core\File\FileSystem $file_system */
+    $file_system = \Drupal::service('file_system');
+    file_put_contents($folder . '/' . $file_system->basename($file->getFileUri()), file_get_contents($file->getFileUri()));
   }
 }
