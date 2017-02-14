@@ -43,6 +43,15 @@ function drush_content_staging_export_content() {
           ->getStorage($entity_type)
           ->loadByProperties([$entity_info->getKey('bundle') => $bundle]);
 
+        if ($entity_type == 'node') {
+          foreach ($entities['node'] as $nid => &$node) {
+            $alias = Drupal::service('path.alias_storage')->load(array('source' => "/node/$nid"));
+            if ($alias) {
+              $node->path = $alias;
+            }
+          }
+        }
+
         generate_staging($entities, $entity_type, $bundle);
         drush_print(t('Export @entity_type - @bundle entities', [
           '@entity_type' => $entity_type,
