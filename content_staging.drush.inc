@@ -85,8 +85,10 @@ function drush_content_staging_update_migration_config() {
     if ($entity_info->hasKey('bundle')) {
       $bundles = $content_staging_manager->getContentEntityTypesBundles($entity_type, ContentStagingManager::ALLOWED_FOR_STAGING_ONLY);
       foreach ($bundles as $bundle => $entity_label) {
-
+        $dependencies = [];
         $id = 'staging_content_' . $entity_type . '_' . $bundle;
+        $process = get_fields_definition($entity_info, $entity_type, $bundle, array_keys($types), $dependencies);
+        unset($dependencies[array_search($id, $dependencies)]);
         $config = [
           'id' => $id,
           'label' => t('Import @entity_label @bundle_label', [
@@ -98,16 +100,22 @@ function drush_content_staging_update_migration_config() {
             'plugin' => 'content_staging_json',
             'input_path' => '../staging/' . $entity_type . '/' . $bundle . '.json',
           ],
-          'process' => get_fields_definition($entity_info, $entity_type, $bundle, array_keys($types)),
+          'process' => $process,
           'destination' => [
-            'plugin' => 'entity:' . $entity_type
+            'plugin' => ($entity_type == 'paragraph') ? 'entity_reference_revisions:paragraph' : 'entity:' . $entity_type
+          ],
+          'migration_dependencies' => [
+            'required' => $dependencies,
           ],
         ];
         \Drupal\migrate_plus\Entity\Migration::create($config)->save();
       }
     }
     else {
+      $dependencies = [];
       $id = 'staging_content_' . $entity_type . '_' . $entity_type;
+      $process = get_fields_definition($entity_info, $entity_type, $entity_type, array_keys($types), $dependencies);
+      unset($dependencies[array_search($id, $dependencies)]);
       $config = [
         'id' => $id,
         'label' => t('Import @entity_label', [
@@ -118,9 +126,12 @@ function drush_content_staging_update_migration_config() {
           'plugin' => 'content_staging_json',
           'input_path' => '../staging/' . $entity_type . '/' . $entity_type . '.json',
         ],
-        'process' => get_fields_definition($entity_info, $entity_type, $entity_type, array_keys($types)),
+        'process' => $process,
         'destination' => [
-          'plugin' => 'entity:' . $entity_type
+          'plugin' => ($entity_type == 'paragraph') ? 'entity_reference_revisions:paragraph' : 'entity:' . $entity_type
+        ],
+        'migration_dependencies' => [
+          'required' => $dependencies,
         ],
       ];
       \Drupal\migrate_plus\Entity\Migration::create($config)->save();
@@ -128,7 +139,7 @@ function drush_content_staging_update_migration_config() {
   }
 }
 
-function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_type, $bundle, $types) {
+function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_type, $bundle, $types, &$dependencies) {
   /** @var \Drupal\Core\Entity\EntityFieldManager $entity_field_manager */
   $entity_field_manager = \Drupal::service('entity_field.manager');
   $bundle_fields = $entity_field_manager->getFieldDefinitions($entity_type, $bundle);
@@ -143,8 +154,8 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
     if ($bundle_field->getType() == 'entity_reference'
       && in_array($bundle_field->getSettings()['target_type'], $types)) {
 
-      $entity_type_manager = \Drupal::entityTypeManager();
       $migration = [];
+      $entity_type_manager = \Drupal::entityTypeManager();
       $migration_source = [];
       // Special case for taxonomy term parent;
       if ($entity_type == 'taxonomy_term' && $field_key == 'parent') {
@@ -169,6 +180,12 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
         }
       }
 
+      if (is_array($migration)) {
+        $dependencies = array_merge($dependencies, $migration);
+      }
+      else {
+        $dependencies[] = $migration;
+      }
       if (count($migration) > 1) {
         foreach ($migration as $value) {
           $migration_source[$value][] = $field_key;
@@ -186,6 +203,28 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
         'plugin' => 'migration',
         'migration' => $migration,
         $source_key => $migration_source,
+      ];
+    }
+    elseif ($bundle_field->getType() == 'entity_reference_revisions'
+      && in_array($bundle_field->getSettings()['target_type'], $types)) {
+
+      $migration = [];
+      foreach ($bundle_field->getSettings()['handler_settings']['target_bundles'] as $target_bundle) {
+        $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle;
+      }
+
+      $dependencies = array_merge($dependencies, $migration);
+      $config[$field_key][] = [
+        'plugin' => 'migration',
+        'migration' => $migration,
+        'source' => $field_key,
+      ];
+      $config[$field_key][] = [
+        'plugin' => 'content_staging_iterator',
+        'process' => [
+          'target_id' => '0',
+          'target_revision_id' => '1',
+        ],
       ];
     }
     elseif ($entity_type == 'menu_link_content' && $field_key == 'parent') {
