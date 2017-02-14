@@ -61,6 +61,7 @@ class ContentStagingJson extends SourcePluginBase {
   public function initializeIterator() {
     if (!isset($this->iterator)) {
       $input = file_get_contents($this->input_path);
+
       $entities = current(json_decode($input, TRUE));
 
       unset($input);
@@ -130,6 +131,10 @@ class ContentStagingJson extends SourcePluginBase {
       }
       else {
         $value = $item;
+      }
+
+      if ($key == 'uri') {
+        $row->setSourceProperty('filepath', realpath('../staging/files') . '/' . str_replace('public://', '', $value));
       }
 
       if (empty($item)) {

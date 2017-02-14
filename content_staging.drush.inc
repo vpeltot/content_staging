@@ -236,6 +236,15 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
         ],
       ];
     }
+    elseif ($entity_type == 'file' && $field_key == 'uri') {
+      $config[$field_key] = [
+        'plugin' => 'file_copy',
+        'source' => [
+          'filepath',
+          $field_key,
+        ],
+      ];
+    }
     elseif ($bundle_field->getType() == 'image') {
       $config[$field_key][] = [
         'plugin' => 'migration',
