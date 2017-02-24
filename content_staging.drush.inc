@@ -254,7 +254,7 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
         ],
       ];
     }
-    elseif ($bundle_field->getType() == 'image') {
+    elseif (in_array($bundle_field->getType(), ['image', 'file'])) {
       $config[$field_key][] = [
         'plugin' => 'migration',
         'migration' => 'staging_content_file_file',
