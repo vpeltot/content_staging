@@ -97,6 +97,7 @@ function drush_content_staging_update_migration_config() {
         $dependencies = [];
         $id = 'staging_content_' . $entity_type . '_' . $bundle;
         $process = get_fields_definition($entity_info, $entity_type, $bundle, array_keys($types), $dependencies);
+        $dependencies = array_unique($dependencies);
         unset($dependencies[array_search($id, $dependencies)]);
         $config = [
           'id' => $id,
@@ -124,6 +125,7 @@ function drush_content_staging_update_migration_config() {
       $dependencies = [];
       $id = 'staging_content_' . $entity_type . '_' . $entity_type;
       $process = get_fields_definition($entity_info, $entity_type, $entity_type, array_keys($types), $dependencies);
+      $dependencies = array_unique($dependencies);
       unset($dependencies[array_search($id, $dependencies)]);
       $config = [
         'id' => $id,
@@ -189,12 +191,6 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
         }
       }
 
-      if (is_array($migration)) {
-        $dependencies = array_merge($dependencies, $migration);
-      }
-      else {
-        $dependencies[] = $migration;
-      }
       if (count($migration) > 1) {
         foreach ($migration as $value) {
           $migration_source[$value][] = $field_key;
