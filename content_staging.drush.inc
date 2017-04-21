@@ -156,9 +156,11 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
   $bundle_fields = $entity_field_manager->getFieldDefinitions($entity_type, $bundle);
 
   // Unset All IDs
-  unset($bundle_fields[$entity_info->getKey('id')]);
-  unset($bundle_fields[$entity_info->getKey('revision')]);
-  unset($bundle_fields['uuid']);
+  $unsetted_fields = [$entity_info->getKey('id'), $entity_info->getKey('revision'), 'uuid'];
+  \Drupal::moduleHandler()->alter('content_staging_unsetted_' . $entity_type . '_fields', $unsetted_fields);
+  foreach ($unsetted_fields as $entity_field) {
+    unset($bundle_fields[$entity_field]);
+  }
 
   $config = [];
   foreach ($bundle_fields as $field_key => $bundle_field) {
