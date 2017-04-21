@@ -7,5 +7,10 @@
  * excluded from the migration
  */
 function hook_content_staging_unsetted_ENTITY_TYPE_fields_alter(&$unsetted_fields) {
-  $unsetted_fields[] = 'vid';
+  foreach ($unsetted_fields as $index => $field_name) {
+    if ($field_name === 'machine_name') {
+      unset($unsetted_fields[$index]);
+      break;
+    }
+  }
 }
