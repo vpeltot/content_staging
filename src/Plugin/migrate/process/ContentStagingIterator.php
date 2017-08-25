@@ -22,7 +22,7 @@ class ContentStagingIterator extends Iterator {
    * Runs a process pipeline on each destination property per list item.
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    if (!is_array($value[0])) {
+    if (isset($value) && !is_array($value[0])) {
       $new_value = [$value];
     }
     else {
