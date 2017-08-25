@@ -167,7 +167,6 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
 
       $migration = [];
       $entity_type_manager = \Drupal::entityTypeManager();
-      $migration_source = [];
       // Special case for taxonomy term parent;
       if ($entity_type == 'taxonomy_term' && $field_key == 'parent') {
         $migration = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $bundle;
@@ -191,23 +190,16 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
         }
       }
 
-      if (count($migration) > 1) {
-        foreach ($migration as $value) {
-          $migration_source[$value][] = $field_key;
-        }
-        $source_key = 'source_ids';
-      }
-      else {
+      if (count($migration) == 1) {
         if (is_array($migration)) {
           $migration = $migration[0];
         }
-        $migration_source = $field_key;
-        $source_key = 'source';
       }
+
       $config[$field_key][] = [
         'plugin' => 'migration',
         'migration' => $migration,
-        $source_key => $migration_source,
+        'source' => $field_key,
       ];
     }
     elseif ($bundle_field->getType() == 'entity_reference_revisions'
