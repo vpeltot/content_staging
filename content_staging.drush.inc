@@ -47,16 +47,13 @@ function drush_content_staging_export_content() {
           foreach ($contents as $id => &$entity) {
             $entity->path = NULL;
             if ($entity->hasLinkTemplate('canonical')) {
-              $path_or_alias = $entity->toUrl('canonical')->toString();
+              $entity_path = $entity->toUrl('canonical')->getInternalPath();
 
               $alias_manager = Drupal::service('path.alias_manager');
               $alias_storage = Drupal::service('path.alias_storage');
 
-              // Ensure we get the system path.
-              $source_path = $alias_manager->getPathByAlias($path_or_alias);
-
               $entity->path = $alias_storage->load(
-                array('source' => $source_path)
+                array('source' => '/' . $entity_path)
               );
             }
           }
