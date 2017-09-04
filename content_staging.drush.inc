@@ -4,8 +4,8 @@
  * @file
  * Define all drush command for content staging.
  */
-use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\content_staging\ContentStagingManager;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 
 /**
  * Implements hook_drush_command().
@@ -43,11 +43,18 @@ function drush_content_staging_export_content() {
           ->getStorage($entity_type)
           ->loadByProperties([$entity_info->getKey('bundle') => $bundle]);
 
-        if ($entity_type == 'node') {
-          foreach ($entities['node'] as $nid => &$node) {
-            $alias = Drupal::service('path.alias_storage')->load(array('source' => "/node/$nid"));
-            if ($alias) {
-              $node->path = $alias;
+        foreach ($entities as $type => $contents) {
+          foreach ($contents as $id => &$entity) {
+            $entity->path = NULL;
+            if ($entity->hasLinkTemplate('canonical')) {
+              $entity_path = $entity->toUrl('canonical')->getInternalPath();
+
+              $alias_manager = Drupal::service('path.alias_manager');
+              $alias_storage = Drupal::service('path.alias_storage');
+
+              $entity->path = $alias_storage->load(
+                array('source' => '/' . $entity_path)
+              );
             }
           }
         }
