@@ -105,9 +105,13 @@ class ContentStagingJson extends SourcePluginBase {
         $value = $item['target_id'];
       }
       elseif (isset($item['target_uuid'])) {
+        if (isset($item['alt']) && isset($item['title'])) {
+          $row->setSourceProperty($key . '_alt', $item['alt']);
+          $row->setSourceProperty($key . '_title', $item['title']);
+        }
         $value = $item['target_uuid'];
       }
-      elseif (is_scalar($item) || (count($item) != 1 && !isset($item['width']) && !isset($item['pid']))) {
+      elseif (is_scalar($item) || (count($item) != 1 && !isset($item['pid']))) {
         if (isset($item[0]) && isset($item[0]['target_uuid'])) {
           $value = [];
           foreach ($item as $it) {
@@ -120,11 +124,6 @@ class ContentStagingJson extends SourcePluginBase {
       }
       elseif (isset($item['value'])) {
         $value = $item['value'];
-      }
-      // Handle bundle['target_id']
-      // Exclude image field to keep metadata (alt / title)
-      elseif (isset($item['target_uuid']) && !isset($item['alt']) && !isset($item['title'])) {
-        $value = $item['target_uuid'];
       }
       elseif (isset($item['pid'])) {
         $value = $item['alias'];

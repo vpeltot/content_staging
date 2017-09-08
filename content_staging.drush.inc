@@ -178,7 +178,7 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
     if ($field_key == $entity_info->getKey('id')) {
       if ($default_language_migration_id !== $migration_id) {
         $config[$field_key] = [
-          'plugin' => 'migration',
+          'plugin' => 'migration_lookup',
           'source' => 'uuid',
           'migration' => $default_language_migration_id,
         ];
@@ -232,7 +232,7 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
       }
 
       $process_field = [
-        'plugin' => 'migration',
+        'plugin' => 'migration_lookup',
         'migration' => $migration,
         'source' => $field_key,
       ];
@@ -252,7 +252,7 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
 
       $dependencies = array_merge($dependencies, $migration);
       $config[$field_key][] = [
-        'plugin' => 'migration',
+        'plugin' => 'migration_lookup',
         'migration' => $migration,
         'source' => $field_key,
       ];
@@ -292,14 +292,16 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
     }
     elseif (in_array($bundle_field->getType(), ['image', 'file'])) {
       $process_field = [
-        'plugin' => 'migration',
-        'migration' => 'staging_content_file_file',
+        'plugin' => 'migration_lookup',
+        'migration' => 'staging_content_file_file_default_language',
         'source' => $field_key,
       ];
       if ($bundle_field->isTranslatable()) {
         $process_field['language'] = '@langcode';
       }
-      $config[$field_key][] = $process_field;
+      $config[$field_key . '/target_id'][] = $process_field;
+      $config[$field_key . '/alt'] = $field_key . '_alt';
+      $config[$field_key . '/title'] = $field_key . '_title';
     }
     else {
       if (!$bundle_field->isTranslatable()) {
