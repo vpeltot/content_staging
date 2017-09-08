@@ -36,10 +36,10 @@ function drush_content_staging_export_content() {
 
   $types = $content_staging_manager->getContentEntityTypes(ContentStagingManager::ALLOWED_FOR_STAGING_ONLY);
   foreach ($types as $entity_type => $entity_info) {
-    $entities = [];
     if ($entity_info->hasKey('bundle')) {
       $bundles = $content_staging_manager->getContentEntityTypesBundles($entity_type, ContentStagingManager::ALLOWED_FOR_STAGING_ONLY);
       foreach ($bundles as $bundle => $entity_label) {
+        $entities = [];
         /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
         foreach($entity_type_manager
           ->getStorage($entity_type)
@@ -51,6 +51,7 @@ function drush_content_staging_export_content() {
       }
     }
     else {
+      $entities = [];
       /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
       foreach(\Drupal::entityTypeManager()
         ->getStorage($entity_type)
@@ -170,8 +171,6 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
   $bundle_fields = $entity_field_manager->getFieldDefinitions($entity_type, $bundle);
 
   // Unset All IDs
-//  unset($bundle_fields[$entity_info->getKey('id')]);
-  unset($bundle_fields[$entity_info->getKey('revision')]);
   unset($bundle_fields['uuid']);
 
   $config = [];
@@ -185,6 +184,12 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
         ];
       }
     }
+    elseif ($field_key == $entity_info->getKey('revision') && $entity_type == 'paragraph') {
+      $config[$field_key] = $field_key;
+    }
+    elseif ($field_key == $entity_info->getKey('revision')) {
+      continue;
+    }
     elseif ($bundle_field->getType() == 'entity_reference'
       && in_array($bundle_field->getSettings()['target_type'], $types)) {
 
@@ -192,11 +197,11 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
       $entity_type_manager = \Drupal::entityTypeManager();
       // Special case for taxonomy term parent;
       if ($entity_type == 'taxonomy_term' && $field_key == 'parent') {
-        $migration = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $bundle;
+        $migration = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $bundle . '_default_language';
       }
       // Special case for entity types without bundle
       elseif (!$entity_type_manager->getDefinition($bundle_field->getSettings()['target_type'])->get('bundle_entity_type')) {
-        $migration = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $bundle_field->getSettings()['target_type'];
+        $migration = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $bundle_field->getSettings()['target_type'] . '_default_language';
       }
       // Spacial case for entity types with bundle but without bundles in field settings
       elseif (!isset($bundle_field->getSettings()['handler_settings']['target_bundles'])) {
@@ -204,12 +209,12 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
         $bundles = $content_staging_manager->getContentEntityTypesBundles($bundle_field->getSettings()['target_type'], ContentStagingManager::ALLOWED_FOR_STAGING_ONLY);
 
         foreach ($bundles as $target_bundle_key => $target_bundle) {
-          $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle_key;
+          $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle_key . '_default_language';
         }
       }
       else {
         foreach ($bundle_field->getSettings()['handler_settings']['target_bundles'] as $target_bundle) {
-          $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle;
+          $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle . '_default_language';
         }
       }
 
@@ -242,7 +247,7 @@ function get_fields_definition(ContentEntityTypeInterface $entity_info, $entity_
 
       $migration = [];
       foreach ($bundle_field->getSettings()['handler_settings']['target_bundles'] as $target_bundle) {
-        $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle;
+        $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle . '_default_language';
       }
 
       $dependencies = array_merge($dependencies, $migration);
