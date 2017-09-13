@@ -17,7 +17,8 @@ Exporting content:
 Importing content:
 --------------------
 
-1. Run the drush command to update migration entities regarding the previous configuration.
+1. Run the drush command to update migration entities
+   regarding the previous configuration.
     $ drush update-migration-config
 
 2. Run the migration
@@ -27,4 +28,5 @@ Importing content:
 TODO:
 --------------------
 
-Add an alert if an entity reference exists when an entity type is chosen in the admin page.
+Add an alert if an entity reference exists
+when an entity type is chosen in the admin page.
