@@ -7,4 +7,35 @@ services:
     arguments: ['@content_staging.manager', '@entity_type.manager', '@path.alias_storage', '@serializer', '@file_system']
   content_staging.import:
     class: Drupal\content_staging\ContentStagingImport
-    arguments: ['@content_staging.manager', '@entity_type.manager', '@entity_field.manager']
+    arguments: ['@content_staging.manager', '@entity_type.manager', '@entity_field.manager', '@event_dispatcher']
+
+  content_staging.process_field_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingProcessFieldSubscriber
+    tags:
+      - {name: event_subscriber}
+  content_staging.process_revision_field_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingProcessRevisionFieldSubscriber
+    tags:
+      - {name: event_subscriber}
+  content_staging.process_menu_link_content_parent_field_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingProcessMenuLinkContentParentFieldSubscriber
+    tags:
+      - {name: event_subscriber}
+  content_staging.process_file_uri_field_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingProcessFileUriFieldSubscriber
+    tags:
+      - {name: event_subscriber}
+  content_staging.process_image_and_file_reference_field_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingProcessImageAndFileReferenceFieldSubscriber
+    tags:
+      - {name: event_subscriber}
+  content_staging.process_entity_reference_field_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingProcessEntityReferenceFieldSubscriber
+    arguments: ['@content_staging.manager', '@entity_type.manager']
+    tags:
+      - {name: event_subscriber}
+  content_staging.process_entity_reference_revision_field_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingProcessEntityReferenceRevisionFieldSubscriber
+    arguments: ['@content_staging.manager']
+    tags:
+      - {name: event_subscriber}

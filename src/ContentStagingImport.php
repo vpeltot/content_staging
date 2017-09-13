@@ -2,6 +2,9 @@
 
 namespace Drupal\content_staging;
 
+use Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher;
+use Drupal\content_staging\Event\ContentStagingEvents;
+use Drupal\content_staging\Event\ContentStagingProcessFieldDefinitionEvent;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -39,6 +42,14 @@ class ContentStagingImport {
    * @var \Drupal\Core\Entity\ContentEntityTypeInterface[]
    */
   protected $entityTypesAllowedForStaging;
+
+  /**
+   * The event dispatcher service.
+   *
+   * @var \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher
+   */
+  protected $eventDispatcher;
+
   /**
    * ContentStagingImport constructor.
    *
@@ -48,12 +59,15 @@ class ContentStagingImport {
    *   The entity type manager service.
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
    *   The entity field manager service.
+   * @param \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher $event_dispatcher
+   *   The event dispatcher service.
    */
-  public function __construct(ContentStagingManager $content_staging_manager, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager) {
+  public function __construct(ContentStagingManager $content_staging_manager, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager, ContainerAwareEventDispatcher $event_dispatcher) {
     $this->contentStagingManager = $content_staging_manager;
     $this->entityTypeManager = $entity_type_manager;
     $this->entityFieldManager = $entity_field_manager;
     $this->entityTypesAllowedForStaging = $content_staging_manager->getContentEntityTypes(ContentStagingManager::ALLOWED_FOR_STAGING_ONLY);
+    $this->eventDispatcher = $event_dispatcher;
   }
 
   /**
@@ -152,11 +166,10 @@ class ContentStagingImport {
     $entity_type_id = $entity_type->id();
     $bundle_fields = $this->entityFieldManager->getFieldDefinitions($entity_type_id, $bundle_id);
 
-    // Unset All uuid definitions.
+    // Unset uuid definitions.
     unset($bundle_fields['uuid']);
 
     $config = [];
-    $dependencies = [];
     foreach ($bundle_fields as $field_key => $bundle_field) {
       if ($field_key == $entity_type->getKey('id')) {
         if ($language !== 'default_language') {
@@ -167,133 +180,12 @@ class ContentStagingImport {
           ];
         }
       }
-      elseif ($field_key == $entity_type->getKey('revision') && $entity_type_id == 'paragraph') {
-        $config[$field_key] = $field_key;
-      }
-      elseif ($field_key == $entity_type->getKey('revision')) {
-        continue;
-      }
-      elseif ($bundle_field->getType() == 'entity_reference'
-        && in_array($bundle_field->getSettings()['target_type'], array_keys($this->entityTypesAllowedForStaging))) {
-
-        $migration = [];
-        // Special case for taxonomy term parent;
-        if ($entity_type_id == 'taxonomy_term' && $field_key == 'parent') {
-          $migration = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $bundle_id . '_default_language';
-        }
-        // Special case for entity types without bundle
-        elseif (!$this->entityTypeManager->getDefinition($bundle_field->getSettings()['target_type'])->get('bundle_entity_type')) {
-          $migration = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $bundle_field->getSettings()['target_type'] . '_default_language';
-        }
-        // Spacial case for entity types with bundle but without bundles in field settings
-        elseif (!isset($bundle_field->getSettings()['handler_settings']['target_bundles'])) {
-          $bundles = $this->contentStagingManager->getBundles($bundle_field->getSettings()['target_type'], ContentStagingManager::ALLOWED_FOR_STAGING_ONLY);
-
-          foreach ($bundles as $target_bundle_key => $target_bundle) {
-            $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle_key . '_default_language';
-          }
-        }
-        else {
-          foreach ($bundle_field->getSettings()['handler_settings']['target_bundles'] as $target_bundle) {
-            $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle . '_default_language';
-          }
-        }
-
-        if (count($migration) == 1) {
-          if (is_array($migration)) {
-            $migration = $migration[0];
-          }
-        }
-
-        if (!is_array($migration)) {
-          $dependencies = array_merge($dependencies, [$migration]);
-        }
-        else {
-          $dependencies = array_merge($dependencies, $migration);
-        }
-
-        $process_field = [
-          'plugin' => 'migration_lookup',
-          'migration' => $migration,
-          'source' => $field_key,
-        ];
-        if ($bundle_field->isTranslatable()) {
-          $process_field['language'] = '@langcode';
-        }
-        $config[$field_key][] = $process_field;
-
-      }
-      elseif ($bundle_field->getType() == 'entity_reference_revisions'
-        && in_array($bundle_field->getSettings()['target_type'], array_keys($this->entityTypesAllowedForStaging))) {
-
-        $migration = [];
-        foreach ($bundle_field->getSettings()['handler_settings']['target_bundles'] as $target_bundle) {
-          $migration[] = 'staging_content_' . $bundle_field->getSettings()['target_type'] . '_' . $target_bundle . '_default_language';
-        }
-
-        $dependencies = array_merge($dependencies, $migration);
-        $config[$field_key][] = [
-          'plugin' => 'migration_lookup',
-          'migration' => $migration,
-          'source' => $field_key,
-        ];
-        $config[$field_key][] = [
-          'plugin' => 'content_staging_iterator',
-          'process' => [
-            'target_id' => '0',
-            'target_revision_id' => '1',
-          ],
-        ];
-      }
-      elseif ($entity_type_id == 'menu_link_content' && $field_key == 'parent') {
-        $process_field = [
-          'plugin' => 'content_staging_menu_link_parent',
-          'source' => [
-            $field_key,
-            '@menu_name',
-          ],
-        ];
-        if ($bundle_field->isTranslatable()) {
-          $process_field['language'] = '@langcode';
-        }
-        $config[$field_key] = $process_field;
-      }
-      elseif ($entity_type_id == 'file' && $field_key == 'uri') {
-        $process_field = [
-          'plugin' => 'file_copy',
-          'source' => [
-            'filepath',
-            $field_key,
-          ],
-        ];
-        if ($bundle_field->isTranslatable()) {
-          $process_field['language'] = '@langcode';
-        }
-        $config[$field_key] = $process_field;
-      }
-      elseif (in_array($bundle_field->getType(), ['image', 'file'])) {
-        $process_field = [
-          'plugin' => 'migration_lookup',
-          'migration' => 'staging_content_file_file_default_language',
-          'source' => $field_key,
-        ];
-        if ($bundle_field->isTranslatable()) {
-          $process_field['language'] = '@langcode';
-        }
-        $config[$field_key . '/target_id'][] = $process_field;
-        $config[$field_key . '/alt'] = $field_key . '_alt';
-        $config[$field_key . '/title'] = $field_key . '_title';
-      }
       else {
-        if (!$bundle_field->isTranslatable()) {
-          $config[$field_key] = $field_key;
-        }
-        else {
-          $config[$field_key] = [
-            'plugin' => 'get',
-            'source' => $field_key,
-            'language' => '@langcode',
-          ];
+        $event = new ContentStagingProcessFieldDefinitionEvent($entity_type, $bundle_id, $bundle_field);
+        /** @var ContentStagingProcessFieldDefinitionEvent $event */
+        $event = $this->eventDispatcher->dispatch(ContentStagingEvents::PROCESS_FIELD_DEFINITION, $event);
+        if ($event->getProcessFieldDefinition()) {
+          $config = array_merge($config, $event->getProcessFieldDefinition());
         }
       }
     }
@@ -302,8 +194,35 @@ class ContentStagingImport {
     }
     return [
       'process_definition' => $config,
-      'dependencies' => $dependencies,
+      'dependencies' => $this->getMigrationDependencies($config),
     ];
+  }
+
+  /**
+   * Calculate migration dependencies.
+   *
+   * @param mixed $config
+   *  The migration config.
+   *
+   * @return array
+   *   The list of all dependencies.
+   */
+  protected function getMigrationDependencies($config) {
+    $dependencies = [];
+    if (is_array($config)) {
+      array_walk_recursive($config, function ($item, $key) use(&$dependencies) {
+        if ($key == 'migration') {
+          if (!is_array($item)) {
+            $dependencies = array_merge($dependencies, [$item]);
+          }
+          else {
+            $dependencies = array_merge($dependencies, $item);
+          }
+        }
+      }, $dependencies);
+    }
+
+    return $dependencies;
   }
 
   /**
