@@ -2,3 +2,9 @@ services:
   content_staging.manager:
     class: Drupal\content_staging\ContentStagingManager
     arguments: ['@entity_type.manager', '@entity_type.bundle.info', '@config.factory']
+  content_staging.export:
+    class: Drupal\content_staging\ContentStagingExport
+    arguments: ['@content_staging.manager', '@entity_type.manager', '@path.alias_storage', '@serializer', '@file_system']
+  content_staging.import:
+    class: Drupal\content_staging\ContentStagingImport
+    arguments: ['@content_staging.manager', '@entity_type.manager', '@entity_field.manager']

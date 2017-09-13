@@ -25,7 +25,7 @@ class ContentStagingJson extends SourcePluginBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, array $namespaces = array()) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, array $namespaces = []) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $migration);
     $this->input_path = $configuration['input_path'];
     $this->iterator = NULL;
