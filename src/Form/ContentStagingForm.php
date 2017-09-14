@@ -1,9 +1,5 @@
 <?php
 
-/**
- * Provide the settings form for content staging.
- */
-
 namespace Drupal\content_staging\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -13,6 +9,9 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\content_staging\ContentStagingManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ * Provide the settings form for content staging.
+ */
 class ContentStagingForm extends ConfigFormBase implements ContainerInjectionInterface {
 
   /**
@@ -61,7 +60,7 @@ class ContentStagingForm extends ConfigFormBase implements ContainerInjectionInt
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['#tree'] = TRUE;
 
-    $staging_directory = $this->contentStagingManager->getConfigStagingDirectory();
+    $staging_directory = $this->contentStagingManager->getDirectory();
     $form['staging_directory'] = [
       '#type' => 'textfield',
       '#title' => t('Content staging directory'),
@@ -69,45 +68,45 @@ class ContentStagingForm extends ConfigFormBase implements ContainerInjectionInt
       '#default_value' => ($staging_directory) ? $staging_directory : '../staging'
     ];
 
-    $entity_types = $this->contentStagingManager->getConfigStagingEntityTypes();
+    $entity_types = $this->contentStagingManager->getEntityTypes();
     $form['entity_types'] = [
-      '#type' => 'details',
+      '#type' => 'fieldset',
       '#title' => t('Entity types'),
-      '#description' => t('Choose the entity types / bundles to which the content will be exported'),
-      '#open' => FALSE,
+      '#description' => t('Choose the entity types / bundles for which the content will be exported'),
     ];
 
-    foreach ($this->contentStagingManager->getContentEntityTypes() as $entity_type => $entity_info) {
-      $form['entity_types'][$entity_type] = [
-        '#type' => 'fieldset',
-        '#title' => $entity_info->getLabel(),
-      ];
+    foreach ($this->contentStagingManager->getContentEntityTypes() as $entity_type_id => $entity_info) {
 
-      $form['entity_types'][$entity_type]['enable'] = [
+      $form['entity_types'][$entity_type_id]['enable'] = [
         '#type' => 'checkbox',
-        '#title' => t('Allow export all <em>@entity_type</em> entities', [
+        '#title' => t('<strong>@entity_type</strong>', [
           '@entity_type' => $entity_info->getLabel(),
         ]),
-        '#default_value' => (isset($entity_types[$entity_type]['enable'])) ? $entity_types[$entity_type]['enable'] : FALSE,
+        '#default_value' => (isset($entity_types[$entity_type_id]['enable'])) ? $entity_types[$entity_type_id]['enable'] : FALSE,
       ];
 
       if ($entity_info->hasKey('bundle')) {
-        $bundles = $this->contentStagingManager->getContentEntityTypesBundles($entity_type);
+        $bundles = $this->contentStagingManager->getBundles($entity_type_id);
 
-        $form['entity_types'][$entity_type]['bundles'] = [
-          '#type' => 'details',
+        $form['entity_types'][$entity_type_id]['bundles'] = [
+          '#type' => 'fieldset',
           '#title' => t('Bundles'),
           '#open' => TRUE,
+          '#states' => [
+            'visible' => [
+              ':input[name="entity_types[' . $entity_type_id . '][enable]"]' => ['checked' => TRUE],
+            ],
+          ],
         ];
 
         foreach ($bundles as $bundle => $bundle_info) {
-          $form['entity_types'][$entity_type]['bundles'][$bundle] = [
+          $form['entity_types'][$entity_type_id]['bundles'][$bundle] = [
             '#type' => 'checkbox',
             '#title' => t('Allow export all <em>@entity_type - @bundle</em> entities', [
               '@entity_type' => $entity_info->getLabel(),
               '@bundle' => $bundle_info['label'],
             ]),
-            '#default_value' => (isset($entity_types[$entity_type]['bundles'][$bundle])) ? $entity_types[$entity_type]['bundles'][$bundle] : FALSE,
+            '#default_value' => (isset($entity_types[$entity_type_id]['bundles'][$bundle])) ? $entity_types[$entity_type_id]['bundles'][$bundle] : FALSE,
           ];
         }
       }
@@ -120,8 +119,8 @@ class ContentStagingForm extends ConfigFormBase implements ContainerInjectionInt
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $this->contentStagingManager->setConfigStagingDirectory($form_state->getValue('staging_directory'));
-    $this->contentStagingManager->setConfigStagingEntityTypes($form_state->getValue('entity_types'));
+    $this->contentStagingManager->setDirectory($form_state->getValue('staging_directory'));
+    $this->contentStagingManager->setEntityTypes($form_state->getValue('entity_types'));
   }
 
 }
