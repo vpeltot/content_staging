@@ -194,7 +194,7 @@ class ContentStagingImport {
     }
     return [
       'process_definition' => $config,
-      'dependencies' => $this->getMigrationDependencies($config),
+      'dependencies' => $this->getMigrationDependencies($config, $language),
     ];
   }
 
@@ -209,22 +209,25 @@ class ContentStagingImport {
    * @return array
    *   The list of all dependencies.
    */
-  protected function getMigrationDependencies($config) {
+  protected function getMigrationDependencies($config, $language) {
     $dependencies = [];
     if (is_array($config)) {
       foreach ($config as $field_key => $process_definition) {
-        if (isset($process_definition['migration']) && (isset($process_definition['no_stub']) && $process_definition['no_stub'])) {
-          if (!is_array($process_definition['migration'])) {
-            $dependencies = array_merge($dependencies, [$process_definition['migration']]);
-          }
-          else {
-            $dependencies = array_merge($dependencies, $process_definition['migration']);
+        if (isset($process_definition['migration'])) {
+          if ((isset($process_definition['no_stub']) && $process_definition['no_stub']) || $language !== 'default_language') {
+            if (!is_array($process_definition['migration'])) {
+              $dependencies = array_merge($dependencies, [$process_definition['migration']]);
+            }
+            else {
+              $dependencies = array_merge($dependencies, $process_definition['migration']);
+            }
           }
         }
       }
     }
     return array_values(array_unique($dependencies));
   }
+
 
   /**
    * Remove all existing content staging migrations.
