@@ -61,12 +61,16 @@ class ContentStagingProcessEntityReferenceFieldSubscriber implements EventSubscr
         && in_array($event->getFieldDefinition()->getSettings()['target_type'], array_keys($this->contentStagingManager->getContentEntityTypes(ContentStagingManager::ALLOWED_FOR_STAGING_ONLY)))) {
 
       $migration = [];
+      $no_stub = FALSE;
       // Special case for taxonomy term parent;
       if ($event->getEntityType()->id() == 'taxonomy_term' && $event->getFieldDefinition()->getName() == 'parent') {
         $migration = 'staging_content_' . $event->getFieldDefinition()->getSettings()['target_type'] . '_' . $event->getBundleId() . '_default_language';
       }
       // Special case for entity types without bundle
       elseif (!$this->entityTypeManager->getDefinition($event->getFieldDefinition()->getSettings()['target_type'])->get('bundle_entity_type')) {
+        if ($event->getFieldDefinition()->getSettings()['target_type'] === 'user') {
+          $no_stub = TRUE;
+        }
         $migration = 'staging_content_' . $event->getFieldDefinition()->getSettings()['target_type'] . '_' . $event->getFieldDefinition()->getSettings()['target_type'] . '_default_language';
       }
       // Spacial case for entity types with bundle but without bundles in field settings
@@ -97,7 +101,9 @@ class ContentStagingProcessEntityReferenceFieldSubscriber implements EventSubscr
       if ($event->getFieldDefinition()->isTranslatable()) {
         $process_field['language'] = '@langcode';
       }
-
+      if ($no_stub) {
+        $process_field['no_stub'] = TRUE;
+      }
       $event->setProcessFieldDefinition([
         $event->getFieldDefinition()->getName() => $process_field
       ]);

@@ -111,8 +111,11 @@ class ContentStagingImport {
       $migration_id = 'staging_content_' . $entity_type_id . '_' . $bundle_id;
 
       $process = $this->getProcessDefinition($entity_type, $bundle_id, $migration_id, $language);
-      $dependencies = array_unique($process['dependencies']);
-      unset($dependencies[array_search($migration_id, $dependencies)]);
+
+      $founded_key = array_search($migration_id, $process['process_definition']);
+      if ($founded_key) {
+        unset($process['process_definition'][$founded_key]);
+      }
 
       $config = [
         'id' => $migration_id . '_' . $language,
@@ -132,7 +135,7 @@ class ContentStagingImport {
           'plugin' => ($entity_type_id == 'paragraph') ? 'entity_reference_revisions:paragraph' : 'entity:' . $entity_type_id,
         ],
         'migration_dependencies' => [
-          'required' => $dependencies,
+          'required' => $process['dependencies'],
         ],
       ];
       if ($language == 'translations') {
@@ -198,6 +201,8 @@ class ContentStagingImport {
   /**
    * Calculate migration dependencies.
    *
+   * Add migration dependencies only if no stub was created.
+   *
    * @param mixed $config
    *  The migration config.
    *
@@ -207,19 +212,18 @@ class ContentStagingImport {
   protected function getMigrationDependencies($config) {
     $dependencies = [];
     if (is_array($config)) {
-      array_walk_recursive($config, function ($item, $key) use(&$dependencies) {
-        if ($key == 'migration') {
-          if (!is_array($item)) {
-            $dependencies = array_merge($dependencies, [$item]);
+      foreach ($config as $field_key => $process_definition) {
+        if (isset($process_definition['migration']) && (isset($process_definition['no_stub']) && $process_definition['no_stub'])) {
+          if (!is_array($process_definition['migration'])) {
+            $dependencies = array_merge($dependencies, [$process_definition['migration']]);
           }
           else {
-            $dependencies = array_merge($dependencies, $item);
+            $dependencies = array_merge($dependencies, $process_definition['migration']);
           }
         }
-      }, $dependencies);
+      }
     }
-
-    return $dependencies;
+    return array_values(array_unique($dependencies));
   }
 
   /**

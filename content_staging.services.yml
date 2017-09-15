@@ -4,7 +4,7 @@ services:
     arguments: ['@entity_type.manager', '@entity_type.bundle.info', '@config.factory']
   content_staging.export:
     class: Drupal\content_staging\ContentStagingExport
-    arguments: ['@content_staging.manager', '@entity_type.manager', '@path.alias_storage', '@serializer', '@file_system']
+    arguments: ['@content_staging.manager', '@entity_type.manager', '@path.alias_storage', '@serializer', '@file_system', '@event_dispatcher']
   content_staging.import:
     class: Drupal\content_staging\ContentStagingImport
     arguments: ['@content_staging.manager', '@entity_type.manager', '@entity_field.manager', '@event_dispatcher']
@@ -41,5 +41,15 @@ services:
   content_staging.process_entity_reference_revision_field_subscriber:
     class: Drupal\content_staging\EventSubscriber\ContentStagingProcessEntityReferenceRevisionFieldSubscriber
     arguments: ['@content_staging.manager']
+    tags:
+      - {name: event_subscriber}
+
+  content_staging.export_user_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingExportUserSubscriber
+    tags:
+      - {name: event_subscriber}
+  content_staging.export_file_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingExportFileSubscriber
+    arguments: ['@content_staging.manager', '@file_system']
     tags:
       - {name: event_subscriber}

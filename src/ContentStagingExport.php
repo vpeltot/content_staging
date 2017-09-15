@@ -2,6 +2,9 @@
 
 namespace Drupal\content_staging;
 
+use Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher;
+use Drupal\content_staging\Event\ContentStagingBeforeExportEvent;
+use Drupal\content_staging\Event\ContentStagingEvents;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystem;
@@ -49,6 +52,13 @@ class ContentStagingExport {
   protected $fileSystem;
 
   /**
+   * The event dispatcher service.
+   *
+   * @var \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher
+   */
+  protected $eventDispatcher;
+
+  /**
    * ContentStagingExport constructor.
    *
    * @param \Drupal\content_staging\ContentStagingManager $content_staging_manager
@@ -62,12 +72,13 @@ class ContentStagingExport {
    * @param \Drupal\Core\File\FileSystem $file_system
    *   The file system service.
    */
-  public function __construct(ContentStagingManager $content_staging_manager, EntityTypeManagerInterface $entity_type_manager, AliasStorageInterface $alias_storage, Serializer $serializer, FileSystem $file_system) {
+  public function __construct(ContentStagingManager $content_staging_manager, EntityTypeManagerInterface $entity_type_manager, AliasStorageInterface $alias_storage, Serializer $serializer, FileSystem $file_system, ContainerAwareEventDispatcher $event_dispatcher) {
     $this->contentStagingManager = $content_staging_manager;
     $this->entityTypeManager = $entity_type_manager;
     $this->aliasStorage = $alias_storage;
     $this->serializer = $serializer;
     $this->fileSystem = $file_system;
+    $this->eventDispatcher = $event_dispatcher;
   }
 
   /**
@@ -145,12 +156,17 @@ class ContentStagingExport {
   protected function doExport(array $translated_entities, $entity_type_id, $bundle = NULL) {
     $export_path = realpath(DRUPAL_ROOT . '/' . $this->contentStagingManager->getDirectory());
 
-    foreach ($translated_entities as $langcode => $entities) {
-      $serialized_entities = $this->serializer->serialize($entities, 'json', [
+    foreach ($translated_entities as $language => $entities) {
+      $event = new ContentStagingBeforeExportEvent($entity_type_id, $bundle, $entities);
+      /** @var ContentStagingBeforeExportEvent $event */
+      $event = $this->eventDispatcher->dispatch(ContentStagingEvents::BEFORE_EXPORT, $event);
+      $entity_list = $event->getEntities();
+
+      $serialized_entities = $this->serializer->serialize($entity_list, 'json', [
         'json_encode_options' => JSON_PRETTY_PRINT,
       ]);
 
-      $entity_export_path = $export_path . '/' . $entity_type_id . '/' . $langcode;
+      $entity_export_path = $export_path . '/' . $entity_type_id . '/' . $language;
 
       // Ensure the directory exists
       if (!file_exists($entity_export_path)) {
@@ -166,30 +182,9 @@ class ContentStagingExport {
 
       drupal_set_message(t('Export @entity_type - @langcode - @bundle entities', [
         '@entity_type' => $entity_type_id,
-        '@langcode' => $langcode,
+        '@langcode' => $language,
         '@bundle' => $bundle,
       ]));
-
-      if ($entity_type_id == 'file') {
-        $this->doExportFiles($entities['file']);
-      }
-    }
-  }
-
-  /**
-   * Export files.
-   *
-   * @param \Drupal\file\FileInterface[] $entities
-   */
-  protected function doExportFiles(array $entities) {
-    $export_path = realpath(DRUPAL_ROOT . '/' . $this->contentStagingManager->getDirectory());
-
-    foreach ($entities as $file) {
-      $folder = $export_path . '/files/' . dirname(file_uri_target($file->getFileUri()));
-      if (!file_exists($folder)) {
-        mkdir($folder, 0777, TRUE);
-      }
-      file_put_contents($folder . '/' . $this->fileSystem->basename($file->getFileUri()), file_get_contents($file->getFileUri()));
     }
   }
 
