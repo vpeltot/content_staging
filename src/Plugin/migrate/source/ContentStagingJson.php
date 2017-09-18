@@ -133,7 +133,11 @@ class ContentStagingJson extends SourcePluginBase {
       }
 
       if ($key == 'uri') {
-        $row->setSourceProperty('filepath', realpath('../staging/files') . '/' . str_replace('public://', '', $value));
+        // We need the content_staging.manager service to get the staging path
+        /* @var \Drupal\content_staging\ContentStagingManager $content_staging_manager */
+        $content_staging_manager = \Drupal::service('content_staging.manager');
+
+        $row->setSourceProperty('filepath', realpath($content_staging_manager->getDirectory() . '/files') . '/' . str_replace('public://', '', $value));
       }
 
       if (empty($item)) {
