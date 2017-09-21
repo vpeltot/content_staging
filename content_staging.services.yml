@@ -53,3 +53,8 @@ services:
     arguments: ['@content_staging.manager', '@file_system']
     tags:
       - {name: event_subscriber}
+  content_staging.export_taxonomy_term_subscriber:
+    class: Drupal\content_staging\EventSubscriber\ContentStagingExportTaxonomyTermSubscriber
+    arguments: ['@entity_type.manager']
+    tags:
+      - {name: event_subscriber}
