@@ -128,7 +128,7 @@ class ContentStagingImport {
         'migration_group' => 'content_staging',
         'source' => [
           'plugin' => 'content_staging_json',
-          'input_path' => '../staging/' . $entity_type_id . '/' . $language . '/' . $bundle_id . '.json',
+          'input_path' => $export_path . '/' . $entity_type_id . '/' . $language . '/' . $bundle_id . '.json',
         ],
         'process' => $process['process_definition'],
         'destination' => [

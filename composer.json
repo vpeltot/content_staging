@@ -1,5 +1,5 @@
 {
-  "name": "vpeltot/content_staging",
+  "name": "Eurelis/content_staging",
   "description": "A drupal module to keep content during site install.",
   "type": "drupal-module",
   "homepage": "https://github.com/vpeltot/content_staging",
